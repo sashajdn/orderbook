@@ -49,13 +49,12 @@ func (o *Orderbook) Depth() int {
 }
 
 func (o *Orderbook) PlaceOrder(order *Order) (uint64, error) {
-	// Validate order.
 	if err := order.Validate(); err != nil {
 		return 0, fmt.Errorf("invalid order: %w", err)
 	}
 
 	sequencedOrder := o.sequencer.Stamp(order)
-	slog.Debug("LOB: placing order", "order", order.String())
+	slog.Debug("LOB: placing order", "order", sequencedOrder.String())
 
 	if order.OrderType == MarketOrder {
 		switch order.Side {

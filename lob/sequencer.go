@@ -36,6 +36,5 @@ func (s *Sequencer) Stamp(order *Order) *Order {
 func (s *Sequencer) generateNextID() uint64 {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
 	return atomic.AddUint64(&s.id, 1)
 }
