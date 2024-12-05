@@ -78,7 +78,7 @@ func TestLOB_SanityCheck(t *testing.T) {
 	require.NoError(t, err)
 
 	spread := ba - bb
-	assert.Equal(t, 6, spread)
+	assert.Equal(t, Price(6), spread)
 }
 
 func addSymmetricalDepthOf3(t *testing.T, lob *Orderbook) {
@@ -86,74 +86,82 @@ func addSymmetricalDepthOf3(t *testing.T, lob *Orderbook) {
 	printBook(t, lob)
 
 	lob.PlaceOrder(&Order{
-		OrderType: LimitOrder,
-		Side:      SellSide,
-		Price:     1001,
-		Size:      1,
+		OrderType:     LimitOrder,
+		Side:          SellSide,
+		Price:         1001,
+		Size:          1,
+		remainingSize: 1,
 	})
 
 	// Print book
 	printBook(t, lob)
 
 	lob.PlaceOrder(&Order{
-		OrderType: LimitOrder,
-		Side:      SellSide,
-		Price:     1001,
-		Size:      2,
+		OrderType:     LimitOrder,
+		Side:          SellSide,
+		Price:         1001,
+		Size:          2,
+		remainingSize: 2,
 	})
 
 	// Print book
 	printBook(t, lob)
 	lob.PlaceOrder(&Order{
-		OrderType: LimitOrder,
-		Side:      SellSide,
-		Price:     1002,
-		Size:      1,
+		OrderType:     LimitOrder,
+		Side:          SellSide,
+		Price:         1002,
+		Size:          1,
+		remainingSize: 1,
 	})
 
 	// Print book
 	printBook(t, lob)
 	lob.PlaceOrder(&Order{
-		OrderType: LimitOrder,
-		Side:      SellSide,
-		Price:     1003,
-		Size:      1,
+		OrderType:     LimitOrder,
+		Side:          SellSide,
+		Price:         1003,
+		Size:          1,
+		remainingSize: 1,
 	})
 
 	// Print book
 	printBook(t, lob)
 	lob.PlaceOrder(&Order{
-		OrderType: LimitOrder,
-		Side:      BuySide,
-		Price:     999,
-		Size:      1,
+		OrderType:     LimitOrder,
+		Side:          BuySide,
+		Price:         999,
+		Size:          1,
+		remainingSize: 1,
 	})
 
 	// Print book
 	printBook(t, lob)
 	lob.PlaceOrder(&Order{
-		OrderType: LimitOrder,
-		Side:      BuySide,
-		Price:     999,
-		Size:      2,
+		OrderType:     LimitOrder,
+		Side:          BuySide,
+		Price:         999,
+		Size:          2,
+		remainingSize: 2,
 	})
 
 	// Print book
 	printBook(t, lob)
 	lob.PlaceOrder(&Order{
-		OrderType: LimitOrder,
-		Side:      BuySide,
-		Price:     998,
-		Size:      1,
+		OrderType:     LimitOrder,
+		Side:          BuySide,
+		Price:         998,
+		Size:          1,
+		remainingSize: 1,
 	})
 
 	// Print book
 	printBook(t, lob)
 	lob.PlaceOrder(&Order{
-		OrderType: LimitOrder,
-		Side:      BuySide,
-		Price:     997,
-		Size:      1,
+		OrderType:     LimitOrder,
+		Side:          BuySide,
+		Price:         997,
+		Size:          1,
+		remainingSize: 1,
 	})
 
 	// Print book

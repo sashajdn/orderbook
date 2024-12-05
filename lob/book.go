@@ -70,11 +70,14 @@ func (b *Book) Take(size Size) ([]*FillEvent, error) {
 		}
 
 		// TODO: Remove
-		slog.Debug("Taking from: ", "size", fmt.Sprintf("%.6f", size), "qtyLeft", fmt.Sprintf("%.6f", qtyLeft))
+		slog.Debug("TAKE BEFORE: ", "size", fmt.Sprintf("%.6f", size), "qtyLeft", fmt.Sprintf("%.6f", qtyLeft))
 
 		var fills []*FillEvent
 		qtyLeft, fills = priceLevel.Take(qtyLeft)
 		totalFills = append(totalFills, fills...)
+
+		// TODO: Remove
+		slog.Debug("TAKE AFTER: ", "size", fmt.Sprintf("%.6f", size), "qtyLeft", fmt.Sprintf("%.6f", qtyLeft))
 
 		if priceLevel.Volume() == 0 {
 			toRemoveFrom = max(toRemoveFrom, i)

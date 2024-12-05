@@ -85,6 +85,10 @@ func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
 			break
 		}
 
+		slog.Debug(`PL: taking from order`, "order", order.String(), "tremsize", fmt.Sprintf("%.6f", remainingSize))
+		// TODO: remove
+		fmt.Println("PL: taking from order", order, "remsize", remainingSize, "orders")
+
 		switch {
 		case remainingSize == order.remainingSize:
 			fills = append(fills, &FillEvent{
@@ -99,6 +103,8 @@ func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
 			order.remainingSize = 0
 			p.orderQueue = p.orderQueue[1:]
 
+			fmt.Println("PL: same size", order, "tremsize", remainingSize, "totalsize", p.totalSize)
+
 			return remainingSize, fills
 		case remainingSize < order.remainingSize:
 			fills = append(fills, &FillEvent{
@@ -109,8 +115,10 @@ func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
 			})
 
 			order.remainingSize = order.remainingSize - remainingSize
-			remainingSize = 0
 			p.totalSize -= remainingSize
+			remainingSize = 0
+
+			fmt.Println(`PL: LT`, order, "tremsize", remainingSize, "totalsize", p.totalSize)
 
 			return remainingSize, fills
 		case remainingSize > order.remainingSize:
@@ -125,6 +133,8 @@ func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
 			order.remainingSize = 0
 			p.orderQueue = p.orderQueue[1:]
 			p.totalSize -= order.Size
+
+			fmt.Println("PL: GT", order, `temsize`, remainingSize, "totalsize", p.totalSize)
 		}
 	}
 

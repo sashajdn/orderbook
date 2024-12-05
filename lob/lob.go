@@ -14,9 +14,10 @@ func NewOrderbook(size uint64) *Orderbook {
 }
 
 type Orderbook struct {
-	asks    *Book
-	bids    *Book
-	orderID uint64
+	asks      *Book
+	bids      *Book
+	orderID   uint64
+	sequencer *Sequencer
 }
 
 func (o *Orderbook) Mid() (Price, error) {
