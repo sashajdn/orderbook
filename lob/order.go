@@ -1,4 +1,4 @@
-package orderbook
+package lob
 
 import "fmt"
 
@@ -38,6 +38,16 @@ func (o OrderSide) String() string {
 	}
 }
 
+func NewOrder(orderType OrderType, side OrderSide, price Price, size Size) *Order {
+	return &Order{
+		OrderType:     orderType,
+		Side:          side,
+		Price:         price,
+		Size:          size,
+		remainingSize: size,
+	}
+}
+
 type Order struct {
 	OrderType     OrderType
 	Side          OrderSide
@@ -60,5 +70,5 @@ func (o *Order) Validate() error {
 }
 
 func (o *Order) String() string {
-	return fmt.Sprintf("%d %s %s %.6f", o.ID, o.OrderType, o.Side, o.Price)
+	return fmt.Sprintf("id=%d type=%s side=%s price=%.6f size=%.6f", o.ID, o.OrderType, o.Side, o.Price, o.Size)
 }

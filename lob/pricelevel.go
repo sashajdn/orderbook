@@ -1,4 +1,4 @@
-package orderbook
+package lob
 
 import (
 	"fmt"
@@ -29,12 +29,13 @@ func (f FillStatus) String() string {
 
 type FillEvent struct {
 	Status  FillStatus
+	Price   Price
 	Size    Size
 	OrderID uint64
 }
 
 func (f FillEvent) String() string {
-	return fmt.Sprintf("%d %s %.6f", f.OrderID, f.Status, f.Size)
+	return fmt.Sprintf(`%d %s %.6f %.6f`, f.OrderID, f.Status, f.Price, f.Size)
 }
 
 type (
@@ -45,6 +46,7 @@ type (
 func NewPriceLevel(price Price) *PriceLevel {
 	return &PriceLevel{
 		orderQueue: make([]*Order, 0),
+		price:      price,
 	}
 }
 
@@ -59,10 +61,12 @@ func (p *PriceLevel) Append(order *Order) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	slog.Debug("PL append: ", "pl price", fmt.Sprintf(`%.f6`, p.price), `order`, order.String())
+	slog.Debug("PL append: ", "pl price", fmt.Sprintf("%.6f", p.price), `order`, order.String())
 
 	p.orderQueue = append(p.orderQueue, order)
 	p.totalSize += order.Size
+
+	slog.Debug("PL append - new size: ", "size", fmt.Sprintf("%.6f", p.totalSize))
 }
 
 func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
@@ -86,18 +90,20 @@ func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
 			fills = append(fills, &FillEvent{
 				Status:  Filled,
 				OrderID: order.ID,
-				Size:    remainingSize,
+				Price:   p.price,
+				Size:    order.remainingSize,
 			})
 
+			remainingSize -= order.remainingSize
+			p.totalSize -= order.remainingSize
 			order.remainingSize = 0
-			remainingSize = 0
 			p.orderQueue = p.orderQueue[1:]
-			p.totalSize -= order.Size
 
 			return remainingSize, fills
 		case remainingSize < order.remainingSize:
 			fills = append(fills, &FillEvent{
 				Status:  PartiallyFilled,
+				Price:   p.price,
 				OrderID: order.ID,
 				Size:    remainingSize,
 			})
@@ -110,11 +116,12 @@ func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
 		case remainingSize > order.remainingSize:
 			fills = append(fills, &FillEvent{
 				Status:  Filled,
+				Price:   p.price,
 				OrderID: order.ID,
 				Size:    order.remainingSize,
 			})
 
-			remainingSize = remainingSize - order.remainingSize
+			remainingSize -= order.remainingSize
 			order.remainingSize = 0
 			p.orderQueue = p.orderQueue[1:]
 			p.totalSize -= order.Size
@@ -122,4 +129,8 @@ func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
 	}
 
 	return remainingSize, fills
+}
+
+func (p *PriceLevel) Volume() Size {
+	return p.totalSize
 }

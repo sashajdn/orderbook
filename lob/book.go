@@ -1,4 +1,4 @@
-package orderbook
+package lob
 
 import (
 	"fmt"
@@ -43,7 +43,9 @@ func (b *Book) Make(order *Order) {
 	slog.Debug("PL not found, creating new PL @ ", "price", fmt.Sprintf("%.6f", order.Price))
 
 	// If the price level is *not* found, then we append to end of the list & sort.
-	b.levels = append(b.levels, NewPriceLevel(order.Price))
+	pl := NewPriceLevel(order.Price)
+	pl.Append(order)
+	b.levels = append(b.levels, pl)
 
 	sort.Slice(b.levels, func(i, j int) bool {
 		return b.cmp(b.levels[i].price, b.levels[j].price)
@@ -60,19 +62,33 @@ func (b *Book) Take(size Size) ([]*FillEvent, error) {
 		qtyLeft    = size
 		totalFills = []*FillEvent{}
 	)
-	for _, priceLevel := range priceLevels {
+
+	toRemoveFrom := -1
+	for i, priceLevel := range priceLevels {
 		if qtyLeft == 0 {
 			break
 		}
 
+		// TODO: Remove
+		slog.Debug("Taking from: ", "size", fmt.Sprintf("%.6f", size), "qtyLeft", fmt.Sprintf("%.6f", qtyLeft))
+
 		var fills []*FillEvent
 		qtyLeft, fills = priceLevel.Take(qtyLeft)
 		totalFills = append(totalFills, fills...)
+
+		if priceLevel.Volume() == 0 {
+			toRemoveFrom = max(toRemoveFrom, i)
+		}
 	}
 
 	// TODO: we need a way to manage what happens when there isn't enough liqudity in the book
 	// BUG: there is also the case here whereby, we want to be sure we have enough liqudity in the book before accepting an order in the
 	//      the book
+
+	// Clean up price levels
+	if toRemoveFrom >= 0 {
+		b.levels = b.levels[toRemoveFrom+1:]
+	}
 
 	return totalFills, nil
 }

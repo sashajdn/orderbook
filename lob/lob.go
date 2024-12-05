@@ -1,4 +1,4 @@
-package orderbook
+package lob
 
 import (
 	"fmt"
@@ -66,7 +66,7 @@ func (o *Orderbook) PlaceOrder(order *Order) (uint64, error) {
 
 			return orderID, nil
 		case SellSide:
-			if _, err := o.asks.Take(order.Size); err != nil {
+			if _, err := o.bids.Take(order.Size); err != nil {
 				return 0, fmt.Errorf(`take order from bids: %w`, err)
 			}
 
