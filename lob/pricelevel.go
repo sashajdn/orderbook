@@ -137,3 +137,7 @@ func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
 func (p *PriceLevel) Volume() Size {
 	return p.totalSize
 }
+
+func (p *PriceLevel) NumberOfOrders() int {
+	return len(p.orderQueue)
+}
