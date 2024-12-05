@@ -7,13 +7,17 @@ import (
 
 var defaultSequencer = &Sequencer{}
 
+func NewSequencer() *Sequencer {
+	return &Sequencer{}
+}
+
 type Sequencer struct {
 	mu sync.Mutex
 	id uint64
 }
 
 func (s *Sequencer) NewOrder(orderType OrderType, side OrderSide, price Price, size Size) *Order {
-	orderID := atomic.AddUint64(&s.id, 1)
+	orderID := s.generateNextID()
 	return &Order{
 		OrderType:     orderType,
 		Side:          side,
@@ -22,4 +26,16 @@ func (s *Sequencer) NewOrder(orderType OrderType, side OrderSide, price Price, s
 		ID:            orderID,
 		remainingSize: size,
 	}
+}
+
+func (s *Sequencer) Stamp(order *Order) *Order {
+	order.ID = s.generateNextID()
+	return order
+}
+
+func (s *Sequencer) generateNextID() uint64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return atomic.AddUint64(&s.id, 1)
 }

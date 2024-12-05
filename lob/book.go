@@ -26,8 +26,6 @@ type Book struct {
 }
 
 func (b *Book) Make(order *Order) {
-	slog.Debug("Book make: ", "order", order.String())
-
 	// Iterate through price levels until we find the price level we want; append order.
 	for _, pl := range b.levels {
 		if pl == nil {
@@ -40,7 +38,7 @@ func (b *Book) Make(order *Order) {
 		}
 	}
 
-	slog.Debug("PL not found, creating new PL @ ", "price", fmt.Sprintf("%.6f", order.Price))
+	slog.Debug("Creating new pricelevel @", "price", fmt.Sprintf("%.6f", order.Price))
 
 	// If the price level is *not* found, then we append to end of the list & sort.
 	pl := NewPriceLevel(order.Price)
@@ -69,15 +67,9 @@ func (b *Book) Take(size Size) ([]*FillEvent, error) {
 			break
 		}
 
-		// TODO: Remove
-		slog.Debug("TAKE BEFORE: ", "size", fmt.Sprintf("%.6f", size), "qtyLeft", fmt.Sprintf("%.6f", qtyLeft))
-
 		var fills []*FillEvent
 		qtyLeft, fills = priceLevel.Take(qtyLeft)
 		totalFills = append(totalFills, fills...)
-
-		// TODO: Remove
-		slog.Debug("TAKE AFTER: ", "size", fmt.Sprintf("%.6f", size), "qtyLeft", fmt.Sprintf("%.6f", qtyLeft))
 
 		if priceLevel.Volume() == 0 {
 			toRemoveFrom = max(toRemoveFrom, i)

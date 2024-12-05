@@ -3,13 +3,13 @@ package lob
 import (
 	"fmt"
 	"log/slog"
-	"sync/atomic"
 )
 
 func NewOrderbook(size uint64) *Orderbook {
 	return &Orderbook{
-		asks: NewBook(SellSide),
-		bids: NewBook(BuySide),
+		asks:      NewBook(SellSide),
+		bids:      NewBook(BuySide),
+		sequencer: NewSequencer(),
 	}
 }
 
@@ -54,34 +54,33 @@ func (o *Orderbook) PlaceOrder(order *Order) (uint64, error) {
 		return 0, fmt.Errorf("invalid order: %w", err)
 	}
 
-	orderID := atomic.AddUint64(&o.orderID, 1)
-	order.ID = orderID
-	slog.Debug(`LOB: placing order`, "order", order.String())
+	sequencedOrder := o.sequencer.Stamp(order)
+	slog.Debug("LOB: placing order", "order", order.String())
 
 	if order.OrderType == MarketOrder {
 		switch order.Side {
 		case BuySide:
-			if _, err := o.asks.Take(order.Size); err != nil {
+			if _, err := o.asks.Take(sequencedOrder.Size); err != nil {
 				return 0, fmt.Errorf("take order from asks: %w", err)
 			}
 
-			return orderID, nil
+			return sequencedOrder.ID, nil
 		case SellSide:
-			if _, err := o.bids.Take(order.Size); err != nil {
+			if _, err := o.bids.Take(sequencedOrder.Size); err != nil {
 				return 0, fmt.Errorf(`take order from bids: %w`, err)
 			}
 
-			return orderID, nil
+			return sequencedOrder.ID, nil
 		}
 	}
 
 	switch order.Side {
 	case BuySide:
-		o.bids.Make(order)
-		return orderID, nil
+		o.bids.Make(sequencedOrder)
+		return sequencedOrder.ID, nil
 	case SellSide:
-		o.asks.Make(order)
-		return orderID, nil
+		o.asks.Make(sequencedOrder)
+		return sequencedOrder.ID, nil
 	}
 
 	return 0, fmt.Errorf("invalid order")

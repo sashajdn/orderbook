@@ -57,16 +57,19 @@ type PriceLevel struct {
 	mu         sync.RWMutex
 }
 
+func (p *PriceLevel) String() string {
+	return fmt.Sprintf("PL: price=%.6f size=%.6f", p.price, p.totalSize)
+}
+
 func (p *PriceLevel) Append(order *Order) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	slog.Debug("PL append: ", "pl price", fmt.Sprintf("%.6f", p.price), `order`, order.String())
+	slog.Debug("Appending order to pricelevel: ", "order", order.String(), "pricelevel", p.String())
 
 	p.orderQueue = append(p.orderQueue, order)
 	p.totalSize += order.Size
 
-	slog.Debug("PL append - new size: ", "size", fmt.Sprintf("%.6f", p.totalSize))
 }
 
 func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
@@ -78,16 +81,12 @@ func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
 		fills         = make([]*FillEvent, 0, 1)
 	)
 
-	defer slog.Debug(`PL: matched`, "fills", fills)
+	defer slog.Debug("PL: matched taker orders", "fills", fills)
 
 	for _, order := range p.orderQueue {
 		if remainingSize == 0 {
 			break
 		}
-
-		slog.Debug(`PL: taking from order`, "order", order.String(), "tremsize", fmt.Sprintf("%.6f", remainingSize))
-		// TODO: remove
-		fmt.Println("PL: taking from order", order, "remsize", remainingSize, "orders")
 
 		switch {
 		case remainingSize == order.remainingSize:
@@ -103,8 +102,6 @@ func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
 			order.remainingSize = 0
 			p.orderQueue = p.orderQueue[1:]
 
-			fmt.Println("PL: same size", order, "tremsize", remainingSize, "totalsize", p.totalSize)
-
 			return remainingSize, fills
 		case remainingSize < order.remainingSize:
 			fills = append(fills, &FillEvent{
@@ -117,8 +114,6 @@ func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
 			order.remainingSize = order.remainingSize - remainingSize
 			p.totalSize -= remainingSize
 			remainingSize = 0
-
-			fmt.Println(`PL: LT`, order, "tremsize", remainingSize, "totalsize", p.totalSize)
 
 			return remainingSize, fills
 		case remainingSize > order.remainingSize:
@@ -133,8 +128,6 @@ func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
 			order.remainingSize = 0
 			p.orderQueue = p.orderQueue[1:]
 			p.totalSize -= order.Size
-
-			fmt.Println("PL: GT", order, `temsize`, remainingSize, "totalsize", p.totalSize)
 		}
 	}
 
