@@ -8,6 +8,13 @@ import (
 	"github.com/sashajdn/orderbook/benchmarks/client"
 )
 
+func NewMarketMaker(users uint, client client.Client) *MarketMaker {
+	return &MarketMaker{
+		ordersMap: make(map[uint64]*MarketMakerOrderState, users),
+		client:    client,
+	}
+}
+
 var _ Executor = &MarketMaker{}
 
 type MarketMakerOrderState struct {
@@ -15,13 +22,6 @@ type MarketMakerOrderState struct {
 	BuyOrderID  string
 	SellOrderID string
 	mu          sync.Mutex
-}
-
-func NewMarketMaker(users int, client client.Client) *MarketMaker {
-	return &MarketMaker{
-		ordersMap: make(map[uint64]*MarketMakerOrderState, users),
-		client:    client,
-	}
 }
 
 type MarketMaker struct {

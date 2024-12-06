@@ -14,9 +14,13 @@ import (
 )
 
 func main() {
+	// LOB setup.
 	lob := lob.NewOrderbook(2 << 16)
+
+	// Client setup.
 	client := client.NewLOBClient(lob)
 
+	// Executor setup.
 	marketMaker := executor.NewMarketMaker(10, client)
 
 	now := time.Now()
@@ -34,7 +38,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 	defer cancel()
 
-	generator := load.NewGenerator(client, stages)
+	generator := load.NewGenerator(stages)
 	if err := generator.Run(ctx); err != nil {
 		slog.Error("Failed to run generator", "error", err)
 	}
