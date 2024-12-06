@@ -41,7 +41,7 @@ type Maker struct {
 func (m *Maker) RunIteration(ctx context.Context) error {
 	for user := range m.users {
 		if err := m.runIteration(ctx); err != nil {
-			return fmt.Errorf("run iteration for user %d: %w", user, err)
+			return fmt.Errorf("maker run iteration for user %d: %w", user, err)
 		}
 
 		return nil
@@ -49,6 +49,8 @@ func (m *Maker) RunIteration(ctx context.Context) error {
 
 	return fmt.Errorf("invalid maker; no users set")
 }
+
+func (m *Maker) Name() string { return "maker" }
 
 func (m *Maker) runIteration(ctx context.Context) error {
 	side := lob.BuySide // TODO:

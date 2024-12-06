@@ -44,6 +44,8 @@ func (m *MarketMaker) RunIteration(ctx context.Context) error {
 	return fmt.Errorf("no orders set")
 }
 
+func (m *MarketMaker) Name() string { return "market_maker" }
+
 func (m *MarketMaker) runIteration(ctx context.Context, orderState *MarketMakerOrderState) error {
 	if orderState.BuyOrderID == "" && orderState.SellOrderID == "" {
 		var err error
