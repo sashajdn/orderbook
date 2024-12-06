@@ -40,6 +40,7 @@ func (l *LOBClient) AddOrder(ctx context.Context, req AddOrderRequest) (AddOrder
 func (l *LOBClient) CancelOrder(ctx context.Context, req CancelOrderRequest) (CancelOrderResponse, error) {
 	return CancelOrderResponse{}, fmt.Errorf(`unimplemented`)
 }
+
 func (l *LOBClient) EditOrder(ctx context.Context, req EditOrderRequest) (EditOrderResponse, error) {
 	return EditOrderResponse{}, fmt.Errorf(`unimplemented`)
 }
