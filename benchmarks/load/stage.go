@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"sync"
 	"time"
-)
 
-type Executor func(ctx context.Context, client Client) error
+	"github.com/sashajdn/orderbook/benchmarks/executor"
+)
 
 type Stage struct {
 	Name                string
@@ -16,16 +16,16 @@ type Stage struct {
 	Duration            time.Duration
 	ThroughputPerMinute int
 	NumberOfExecutors   int
-	Executor            Executor
+	Executor            executor.Executor
 }
 
-func (s *Stage) Run(ctx context.Context, client Client) error {
-	ch := make(chan Executor, 2<<16)
+func (s *Stage) Run(ctx context.Context) error {
+	ch := make(chan int64, 2<<16)
 
 	go func() {
 		// Populate channel
 		for i := 0; i < s.ThroughputPerMinute*int(s.Duration); i++ {
-			ch <- s.Executor
+			ch <- int64(i)
 		}
 	}()
 
@@ -40,8 +40,8 @@ func (s *Stage) Run(ctx context.Context, client Client) error {
 		go func() {
 			defer wg.Done()
 
-			for work := range ch {
-				if err := work(workerCtx, client); err != nil {
+			for range ch {
+				if err := s.Executor.RunIteration(workerCtx); err != nil {
 					slog.Error("execute work", "error", err, "idx", fmt.Sprintf("%d", executionWorker))
 				}
 			}

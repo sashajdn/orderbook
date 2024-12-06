@@ -2,19 +2,22 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
 	"time"
 
+	"github.com/sashajdn/orderbook/benchmarks/client"
+	"github.com/sashajdn/orderbook/benchmarks/executor"
 	"github.com/sashajdn/orderbook/benchmarks/load"
 	"github.com/sashajdn/orderbook/lob"
 )
 
 func main() {
 	lob := lob.NewOrderbook(2 << 16)
-	client := load.NewLOBClient(lob)
+	client := client.NewLOBClient(lob)
+
+	marketMaker := executor.NewMarketMaker(10, client)
 
 	now := time.Now()
 	stages := []load.Stage{
@@ -24,14 +27,7 @@ func main() {
 			Duration:            1 * time.Minute,
 			ThroughputPerMinute: 10_000,
 			NumberOfExecutors:   10,
-			Executor: func(ctx context.Context, client load.Client) error {
-				_, err := client.AddOrder(ctx, load.AddOrderRequest{})
-				if err != nil {
-					return fmt.Errorf("add order: %w", err)
-				}
-
-				return nil
-			},
+			Executor:            marketMaker,
 		},
 	}
 
