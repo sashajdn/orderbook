@@ -35,20 +35,47 @@ func TestPricelevel_SanityCheck(t *testing.T) {
 func TestPricelevel_Take(t *testing.T) {
 	t.Parallel()
 
-	pl := NewPriceLevel(1000.0)
-
-	orders := generateOrders(10, 0, 1000.0, 0, []uint64{20, 30, 40, 50})
-	for _, order := range orders {
-		fmt.Println("Adding order to price level: ", order)
-		pl.Append(order)
-		fmt.Println("PL total size: ", pl.totalSize)
+	tests := []struct {
+		name                   string
+		ordersToAppend         []*Order
+		ordersToTake           []*Order
+		expectedRemainingSizes []Size
+	}{
+		{
+			name: `sanity_check`,
+			ordersToAppend: []*Order{
+				{
+					Size:          2,
+					remainingSize: 2,
+				},
+			},
+			ordersToTake: []*Order{
+				{
+					Size:          1,
+					remainingSize: 1,
+				},
+			},
+			expectedRemainingSizes: []Size{0},
+		},
 	}
 
-	size, _ := pl.Take(83.173)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.True(t, len(tt.ordersToTake) == len(tt.expectedRemainingSizes), `test setup invalid; number of orders to take must be equal to expected remaining sizes`)
 
-	// assert.Len(t, fills, 3)
-	assert.Equal(t, Size(0), size)
-	// assert.Equal(t, Size(7.0), pl.totalSize)
+			pl := NewPriceLevel(1000.0)
+			for _, order := range tt.ordersToAppend {
+				pl.Append(order)
+			}
+
+			for i, order := range tt.ordersToTake {
+				size, _ := pl.Take(order.Size)
+				assert.Equal(t, tt.expectedRemainingSizes[i], size)
+			}
+		})
+	}
 }
 
 func generateOrders(n, m uint, midpoint, spread float64, sizeRange []uint64) []*Order {

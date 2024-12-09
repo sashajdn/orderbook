@@ -73,6 +73,10 @@ func (p *PriceLevel) Append(order *Order) {
 }
 
 func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
+	if size == 0 {
+		return 0, []*FillEvent{}
+	}
+
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -94,15 +98,15 @@ func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
 				Status:  Filled,
 				OrderID: order.ID,
 				Price:   p.price,
-				Size:    order.remainingSize,
+				Size:    remainingSize,
 			})
 
-			remainingSize -= order.remainingSize
-			p.totalSize -= order.remainingSize
+			p.totalSize -= remainingSize
 			order.remainingSize = 0
+
 			p.orderQueue = p.orderQueue[1:]
 
-			return remainingSize, fills
+			return 0, fills
 		case remainingSize < order.remainingSize:
 			fills = append(fills, &FillEvent{
 				Status:  PartiallyFilled,
@@ -111,11 +115,10 @@ func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
 				Size:    remainingSize,
 			})
 
-			order.remainingSize = order.remainingSize - remainingSize
+			order.remainingSize -= -remainingSize
 			p.totalSize -= remainingSize
-			remainingSize = 0
 
-			return remainingSize, fills
+			return 0, fills
 		case remainingSize > order.remainingSize:
 			fills = append(fills, &FillEvent{
 				Status:  Filled,
@@ -124,10 +127,11 @@ func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
 				Size:    order.remainingSize,
 			})
 
+			p.totalSize -= order.remainingSize
 			remainingSize -= order.remainingSize
 			order.remainingSize = 0
+
 			p.orderQueue = p.orderQueue[1:]
-			p.totalSize -= order.Size
 		}
 	}
 
@@ -136,4 +140,8 @@ func (p *PriceLevel) Take(size Size) (Size, []*FillEvent) {
 
 func (p *PriceLevel) Volume() Size {
 	return p.totalSize
+}
+
+func (p *PriceLevel) NumberOfOrders() int {
+	return len(p.orderQueue)
 }

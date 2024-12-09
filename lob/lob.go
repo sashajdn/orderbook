@@ -48,6 +48,10 @@ func (o *Orderbook) Depth() int {
 	return max(o.asks.Depth(), o.bids.Depth())
 }
 
+func (o *Orderbook) Volume() (Size, Size) {
+	return o.bids.levels.TotalVolume(), o.asks.levels.TotalVolume()
+}
+
 func (o *Orderbook) PlaceOrder(order *Order) (uint64, error) {
 	if err := order.Validate(); err != nil {
 		return 0, fmt.Errorf("invalid order: %w", err)
@@ -83,6 +87,14 @@ func (o *Orderbook) PlaceOrder(order *Order) (uint64, error) {
 	}
 
 	return 0, fmt.Errorf("invalid order")
+}
+
+func (o *Orderbook) CancelOrder(orderID uint64) error {
+	return fmt.Errorf("unimplemented")
+}
+
+func (o *Orderbook) EditOrder(order *Order) error {
+	return fmt.Errorf("unimplemented")
 }
 
 func max(a, b int) int {

@@ -70,5 +70,5 @@ func (o *Order) Validate() error {
 }
 
 func (o *Order) String() string {
-	return fmt.Sprintf("id=%d type=%s side=%s price=%.6f size=%.6f remsize=%.6f", o.ID, o.OrderType, o.Side, o.Price, o.Size, o.remainingSize)
+	return fmt.Sprintf(`%s @ %.6f : id=%d type=%s size=%.6f remsize=%.6f`, o.Side, o.Price, o.ID, o.OrderType, o.Size, o.remainingSize)
 }
