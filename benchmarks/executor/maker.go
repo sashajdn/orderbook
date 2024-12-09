@@ -19,9 +19,14 @@ type MakerConfig struct {
 }
 
 func NewMaker(config MakerConfig) *Maker {
+	usersMap := make(map[uint64]struct{}, config.Users)
+	for userID := 1; userID <= int(config.Users); userID++ {
+		usersMap[uint64(userID)] = struct{}{}
+	}
+
 	return &Maker{
 		client:      config.Client,
-		users:       make(map[uint]struct{}, config.Users),
+		users:       usersMap,
 		laplaceBeta: config.LaplaceBeta,
 		midprice:    config.Midprice,
 		spread:      config.Spread,
@@ -32,7 +37,7 @@ var _ Executor = &Maker{}
 
 type Maker struct {
 	client      client.Client
-	users       map[uint]struct{}
+	users       map[uint64]struct{}
 	laplaceBeta float64
 	midprice    lob.Price
 	spread      float64

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -14,6 +15,7 @@ import (
 )
 
 func main() {
+	slog.Info("Running direct benchmarking...")
 	// LOB setup.
 	lob := lob.NewOrderbook(2 << 16)
 
@@ -21,17 +23,46 @@ func main() {
 	client := client.NewLOBClient(lob)
 
 	// Executor setup.
-	marketMaker := executor.NewMarketMaker(10, client)
+	taker := executor.NewTaker(executor.TakerConfig{
+		Users:  10,
+		Client: client,
+	})
 
-	now := time.Now()
+	maker := executor.NewMaker(executor.MakerConfig{
+		Client:      client,
+		Users:       10,
+		Spread:      5,
+		Midprice:    1000,
+		LaplaceBeta: 1.0,
+	})
+
+	slog.Info("Direct benchmark setup complete")
+	slog.Info(`Direct benchmark executing stages...`)
+
 	stages := []load.Stage{
 		{
-			Name:                "stage_1",
-			StartTime:           now.Add(1 * time.Minute),
+			Name:                "book_warmup",
+			RelativeStartTime:   0,
 			Duration:            1 * time.Minute,
-			ThroughputPerMinute: 10_000,
+			ThroughputPerMinute: 100,
 			NumberOfExecutors:   10,
-			Executor:            marketMaker,
+			Executor:            maker,
+		},
+		{
+			Name:                "maker",
+			RelativeStartTime:   1 * time.Minute,
+			Duration:            1 * time.Minute,
+			ThroughputPerMinute: 10,
+			NumberOfExecutors:   10,
+			Executor:            maker,
+		},
+		{
+			Name:                "taker",
+			RelativeStartTime:   1 * time.Minute,
+			Duration:            1 * time.Minute,
+			ThroughputPerMinute: 10,
+			NumberOfExecutors:   10,
+			Executor:            taker,
 		},
 	}
 
@@ -43,3 +74,17 @@ func main() {
 		slog.Error("Failed to run generator", "error", err)
 	}
 }
+
+var _ executor.Executor = &LiquidityPrinter{}
+
+type LiquidityPrinter struct {
+	lob *lob.Orderbook
+}
+
+func (l *LiquidityPrinter) RunIteration(_ context.Context) error {
+	bv, av := l.lob.Volume()
+	slog.Info("VOLUME", "bid", fmt.Sprintf("%.4f", bv), "ask", fmt.Sprintf("%.4f", av))
+	return nil
+}
+
+func (l *LiquidityPrinter) Name() string { return "liquidity printer" }

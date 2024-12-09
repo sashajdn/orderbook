@@ -12,20 +12,41 @@ import (
 
 type Stage struct {
 	Name                string
-	StartTime           time.Time
+	RelativeStartTime   time.Duration
 	Duration            time.Duration
 	ThroughputPerMinute int
 	NumberOfExecutors   int
 	Executor            executor.Executor
+	LoadCurve           LoadCurve
 }
 
 func (s *Stage) Run(ctx context.Context) error {
-	ch := make(chan int64, 2<<16)
+	slog.Info(
+		"Running stage: ",
+		"stage", s.Name,
+		"throughput_per_minute", fmt.Sprintf("%d", s.ThroughputPerMinute),
+		"duration", s.Duration.String(),
+		"number_of_executors", fmt.Sprintf("%d", s.NumberOfExecutors),
+	)
 
+	var lcg LoadCurveGenerator
+	switch s.LoadCurve {
+	case LoadCurveLinear:
+		lcg = NewLinearLoadCurveGenerator(s.ThroughputPerMinute, int(s.Duration/time.Minute), time.Minute)
+	default:
+		return fmt.Errorf("Load curve not supported: %s", s.LoadCurve)
+	}
+
+	ch := make(chan int64, 2<<16)
 	go func() {
 		// Populate channel
-		for i := 0; i < s.ThroughputPerMinute*int(s.Duration); i++ {
-			ch <- int64(i)
+		defer close(ch)
+		for i := 0; i < s.ThroughputPerMinute*int(s.Duration/time.Minute); i++ {
+			select {
+			case ch <- int64(i):
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 
@@ -41,6 +62,13 @@ func (s *Stage) Run(ctx context.Context) error {
 			defer wg.Done()
 
 			for range ch {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+
+				lcg.Wait()
 				if err := s.Executor.RunIteration(workerCtx); err != nil {
 					slog.Error("execute work", "error", err, "idx", fmt.Sprintf("%d", executionWorker))
 				}
@@ -59,6 +87,8 @@ func (s *Stage) Run(ctx context.Context) error {
 		slog.Info("stage done", "stage", s.Name)
 	case <-time.After(s.Duration): // TODO: calc timer above
 		slog.Warn(`stage not finished execution in alloted timeframe`, "stage", s.Name)
+	case <-ctx.Done():
+		slog.Warn("Context cancelled exiting...")
 	}
 
 	return nil
@@ -71,7 +101,7 @@ func (s Stages) Len() int {
 }
 
 func (s Stages) Less(i, j int) bool {
-	return s[i].StartTime.Before(s[j].StartTime)
+	return s[i].RelativeStartTime < (s[j].RelativeStartTime)
 }
 
 func (s Stages) Swap(i, j int) {

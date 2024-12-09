@@ -20,12 +20,7 @@ type LOBClient struct {
 }
 
 func (l *LOBClient) AddOrder(ctx context.Context, req AddOrderRequest) (AddOrderResponse, error) {
-	order := &lob.Order{
-		OrderType: req.OrderType,
-		Side:      req.OrderSide,
-		Price:     req.Price,
-		Size:      req.Size,
-	}
+	order := lob.NewOrder(req.OrderType, req.OrderSide, req.Price, req.Size)
 
 	id, err := l.lob.PlaceOrder(order)
 	if err != nil {

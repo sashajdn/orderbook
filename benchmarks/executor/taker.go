@@ -15,9 +15,14 @@ type TakerConfig struct {
 }
 
 func NewTaker(config TakerConfig) *Taker {
+	usersMap := make(map[uint64]struct{}, config.Users)
+	for userID := 1; userID <= int(config.Users); userID++ {
+		usersMap[uint64(userID)] = struct{}{}
+	}
+
 	return &Taker{
 		client: config.Client,
-		users:  make(map[uint]struct{}, config.Users),
+		users:  usersMap,
 	}
 }
 
@@ -25,7 +30,7 @@ var _ Executor = &Taker{}
 
 type Taker struct {
 	client client.Client
-	users  map[uint]struct{}
+	users  map[uint64]struct{}
 }
 
 func (t *Taker) RunIteration(ctx context.Context) error {
@@ -37,7 +42,7 @@ func (t *Taker) RunIteration(ctx context.Context) error {
 		return nil
 	}
 
-	return fmt.Errorf("invalid maker; no users set")
+	return fmt.Errorf("invalid taker; no users set")
 }
 
 func (t *Taker) Name() string { return "taker" }

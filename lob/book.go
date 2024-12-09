@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
+	"sync"
 )
 
 func NewBook(side OrderSide) *Book {
@@ -13,6 +14,7 @@ func NewBook(side OrderSide) *Book {
 	}
 
 	return &Book{
+		side:   side,
 		levels: make(BookLevels, 0, 128),
 		cmp:    cmp,
 	}
@@ -20,12 +22,34 @@ func NewBook(side OrderSide) *Book {
 
 type BookLevels []*PriceLevel
 
+func (b BookLevels) TotalVolume() Size {
+	var totalVolume Size
+	for _, pl := range b {
+		totalVolume += pl.totalSize
+	}
+
+	return totalVolume
+}
+
 type Book struct {
+	side   OrderSide
 	cmp    func(a, b Price) bool
 	levels BookLevels
+	mu     sync.RWMutex
+}
+
+func (b *Book) Side() OrderSide {
+	return b.side
+}
+
+func (b *Book) TotalVolume() Size {
+	return b.levels.TotalVolume()
 }
 
 func (b *Book) Make(order *Order) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
 	// Iterate through price levels until we find the price level we want; append order.
 	for _, pl := range b.levels {
 		if pl == nil {
@@ -51,9 +75,13 @@ func (b *Book) Make(order *Order) {
 }
 
 func (b *Book) Take(size Size) ([]*FillEvent, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
 	priceLevels := b.levels
 	if b.Depth() == 0 {
-		return nil, fmt.Errorf("not enough liquidity in book")
+		// TODO: we should store this per the price level rather than being in a position whereby we need to calculate.
+		return nil, fmt.Errorf("not enough liquidity in book %.2f/%.2f", size, b.levels.TotalVolume())
 	}
 
 	var (
@@ -74,15 +102,19 @@ func (b *Book) Take(size Size) ([]*FillEvent, error) {
 		if priceLevel.Volume() == 0 {
 			toRemoveFrom = max(toRemoveFrom, i)
 		}
-	}
 
-	// TODO: we need a way to manage what happens when there isn't enough liqudity in the book
-	// BUG: there is also the case here whereby, we want to be sure we have enough liqudity in the book before accepting an order in the
-	//      the book
+		if qtyLeft <= 0 {
+			break
+		}
+	}
 
 	// Clean up price levels
 	if toRemoveFrom >= 0 {
-		b.levels = b.levels[toRemoveFrom+1:]
+		if toRemoveFrom >= len(b.levels) {
+			b.levels = make(BookLevels, 0, 128)
+		} else {
+			b.levels = b.levels[toRemoveFrom+1:]
+		}
 	}
 
 	return totalFills, nil
