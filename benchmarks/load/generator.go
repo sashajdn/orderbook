@@ -21,17 +21,13 @@ type Generator struct {
 }
 
 func (g *Generator) Run(ctx context.Context) error {
-	for _, stage := range g.stages {
-		if err := stage.Run(ctx); err != nil {
-			return err
-		}
-	}
+	s := &scheduler{}
+	s.run(ctx, g.stages)
 
 	return nil
 }
 
-type scheduler struct {
-}
+type scheduler struct{}
 
 func (s *scheduler) run(ctx context.Context, stages []*Stage) error {
 	var wg sync.WaitGroup
@@ -56,6 +52,8 @@ func (s *scheduler) run(ctx context.Context, stages []*Stage) error {
 			slog.Info("====== Stage finished", "stage", stage.Name)
 		}()
 	}
+
+	wg.Wait()
 
 	return nil
 }

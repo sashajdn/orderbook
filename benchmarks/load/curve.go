@@ -9,7 +9,7 @@ import (
 type LoadCurve int8
 
 const (
-	LoadCurveLinear LoadCurve = iota + 1
+	LoadCurveLinear LoadCurve = iota
 )
 
 var _ fmt.Stringer = new(LoadCurve)
@@ -37,7 +37,7 @@ func NewLinearLoadCurveGenerator(rate int, length int, unit time.Duration) *Line
 	}
 
 	go func() {
-		t := time.NewTimer(time.Duration(rate) / unit)
+		t := time.NewTicker(unit / time.Duration(rate))
 		defer t.Stop()
 
 		for {

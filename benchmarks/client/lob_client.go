@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/sashajdn/orderbook/lob"
 )
@@ -21,6 +22,9 @@ type LOBClient struct {
 
 func (l *LOBClient) AddOrder(ctx context.Context, req AddOrderRequest) (AddOrderResponse, error) {
 	order := lob.NewOrder(req.OrderType, req.OrderSide, req.Price, req.Size)
+
+	// TODO: remove
+	slog.Info("Placing order", "order", order.String())
 
 	id, err := l.lob.PlaceOrder(order)
 	if err != nil {

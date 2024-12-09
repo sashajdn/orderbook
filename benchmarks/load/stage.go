@@ -85,7 +85,7 @@ func (s *Stage) Run(ctx context.Context) error {
 	select {
 	case <-done:
 		slog.Info("stage done", "stage", s.Name)
-	case <-time.After(s.Duration): // TODO: calc timer above
+	case <-time.After(s.Duration + 10*time.Millisecond): // TODO: calc timer above
 		slog.Warn(`stage not finished execution in alloted timeframe`, "stage", s.Name)
 	case <-ctx.Done():
 		slog.Warn("Context cancelled exiting...")
@@ -94,7 +94,7 @@ func (s *Stage) Run(ctx context.Context) error {
 	return nil
 }
 
-type Stages []Stage
+type Stages []*Stage
 
 func (s Stages) Len() int {
 	return len(s)

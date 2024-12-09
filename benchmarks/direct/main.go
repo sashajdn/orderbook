@@ -39,30 +39,33 @@ func main() {
 	slog.Info("Direct benchmark setup complete")
 	slog.Info(`Direct benchmark executing stages...`)
 
-	stages := []load.Stage{
+	stages := []*load.Stage{
 		{
 			Name:                "book_warmup",
 			RelativeStartTime:   0,
 			Duration:            1 * time.Minute,
-			ThroughputPerMinute: 100,
+			ThroughputPerMinute: 1000,
 			NumberOfExecutors:   10,
 			Executor:            maker,
+			LoadCurve:           load.LoadCurveLinear,
 		},
 		{
 			Name:                "maker",
 			RelativeStartTime:   1 * time.Minute,
 			Duration:            1 * time.Minute,
-			ThroughputPerMinute: 10,
+			ThroughputPerMinute: 100,
 			NumberOfExecutors:   10,
 			Executor:            maker,
+			LoadCurve:           load.LoadCurveLinear,
 		},
 		{
 			Name:                "taker",
 			RelativeStartTime:   1 * time.Minute,
 			Duration:            1 * time.Minute,
-			ThroughputPerMinute: 10,
+			ThroughputPerMinute: 100,
 			NumberOfExecutors:   10,
 			Executor:            taker,
+			LoadCurve:           load.LoadCurveLinear,
 		},
 	}
 
